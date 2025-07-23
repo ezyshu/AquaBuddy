@@ -19,8 +19,8 @@ export default defineConfig({
   manifest: {
     name: 'AquaBuddy - 喝水小助手',
     version: pkg.version,
-    description: 'Cute-style water drinking reminder assistant, helping you develop healthy drinking habits.',
-    permissions: ['storage', 'tabs'],
+    description: '可爱风格喝水小助手，助你养成健康饮水习惯。',
+    permissions: ['storage'],
     host_permissions: ['http://*/*', 'https://*/*'],
   }
 });
