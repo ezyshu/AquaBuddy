@@ -24,14 +24,6 @@ AquaBuddy is a cute-style browser extension that helps you track your daily wate
 - **Daily Cup Goal**: Adjust your daily water intake target.
 - **Reset Today's Record**: Reset today's water intake record at any time.
 
-### Development Information
-
-This extension is built using the following technologies:
-- Vue 3
-- WXT (Web Extension Tools)
-- TypeScript
-- Chrome Extensions API
-
 ### Hydration Tips
 
 - Adults should drink about 8 cups (2 liters) of water per day.
