@@ -29,6 +29,99 @@
         </div>
       </div>
       
+      <div class="settings-section">
+        <h2>通知设置</h2>
+        
+        <div class="setting-item">
+          <div class="setting-label">定时提醒</div>
+          <div class="setting-control">
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="reminderEnabled">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label" :class="{ 'enabled': reminderEnabled }">{{ reminderEnabled ? '已开启' : '已关闭' }}</span>
+          </div>
+        </div>
+        
+        <div class="setting-group" v-if="reminderEnabled">
+          <div class="setting-item">
+            <div class="setting-label">提醒间隔</div>
+            <div class="setting-control">
+              <div class="reminder-interval">
+                <select class="interval-select" v-model="reminderInterval" @change="handleIntervalChange">
+                  <option value="30">30 分钟</option>
+                  <option value="60">1 小时</option>
+                  <option value="90">1.5 小时</option>
+                  <option value="120">2 小时</option>
+                  <option value="180">3 小时</option>
+                  <option value="240">4 小时</option>
+                  <option value="300">5 小时</option>
+                  <option value="360">6 小时</option>
+                  <option value="custom">自定义...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="setting-item" v-if="reminderInterval === 'custom'">
+            <div class="setting-label">自定义间隔（分钟）</div>
+            <div class="setting-control">
+              <div class="custom-interval">
+                <input 
+                  type="number" 
+                  class="interval-input" 
+                  v-model.number="customIntervalMinutes" 
+                  min="1" 
+                  max="480"
+                  step="1"
+                  @input="validateCustomInterval"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div class="setting-item">
+            <div class="setting-label">提醒时间范围</div>
+            <div class="setting-control">
+              <div class="time-range">
+                <custom-time-picker v-model="reminderStartTime" />
+                <span class="time-range-label">至</span>
+                <custom-time-picker v-model="reminderEndTime" />
+              </div>
+            </div>
+          </div>
+          
+          <div class="setting-item">
+            <div class="setting-label">工作日提醒</div>
+            <div class="setting-control">
+              <label class="toggle-switch">
+                <input type="checkbox" v-model="workdaysOnly">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label" :class="{ 'enabled': workdaysOnly }">{{ workdaysOnly ? '仅工作日' : '每天' }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-label">测试通知</div>
+          <div class="setting-control">
+            <button class="notification-button" @click="testNotification">发送测试通知</button>
+          </div>
+        </div>
+        
+        <div class="system-tips">
+          <div class="tip-title">
+            <span class="tip-icon">💡</span>
+            通知无法显示？
+          </div>
+          <div class="tip-content">
+            <p>Windows 系统设置可能禁用了 Chrome 的通知。</p>
+            <p>请前往 <strong>Windows 设置 > 系统 > 通知与操作</strong> 中检查 Chrome 的通知权限。</p>
+          </div>
+        </div>
+      </div>
+      
       <div class="settings-actions">
         <button class="save-button" @click="saveSettings">保存设置</button>
       </div>
@@ -46,12 +139,24 @@
 </template>
 
 <script>
+import './style.less';
+import CustomTimePicker from './components/CustomTimePicker.vue';
+
 export default {
+  components: {
+    CustomTimePicker
+  },
   data() {
     return {
       waterGoal: 8,
       drankCups: 0,
-      settingsSaved: false
+      settingsSaved: false,
+      reminderEnabled: false,
+      reminderInterval: '60',
+      customIntervalMinutes: 60,
+      reminderStartTime: '09:00',
+      reminderEndTime: '18:00',
+      workdaysOnly: true
     }
   },
   methods: {
@@ -62,18 +167,76 @@ export default {
         if (result.aquaBuddy) {
           this.waterGoal = result.aquaBuddy.totalCups || 8;
           this.drankCups = result.aquaBuddy.drankCups || 0;
+          this.reminderEnabled = result.aquaBuddy.reminderEnabled || false;
+          
+          // 处理提醒间隔
+          if (result.aquaBuddy.customIntervalMinutes) {
+            this.customIntervalMinutes = parseInt(result.aquaBuddy.customIntervalMinutes, 10);
+            
+            // 检查是否匹配预设值
+            const presetValues = [1, 5, 10, 15, 30, 60, 90, 120, 180, 240, 300, 360];
+            if (presetValues.includes(this.customIntervalMinutes)) {
+              this.reminderInterval = this.customIntervalMinutes.toString();
+            } else {
+              this.reminderInterval = 'custom';
+            }
+          } else if (result.aquaBuddy.reminderInterval) {
+            if (result.aquaBuddy.reminderInterval === 'custom') {
+              this.reminderInterval = 'custom';
+              const customValue = parseInt(result.aquaBuddy.customIntervalMinutes || '60', 10);
+              this.customIntervalMinutes = isNaN(customValue) || customValue < 1 ? 60 : 
+                                          customValue > 480 ? 480 : customValue;
+            } else {
+              this.reminderInterval = result.aquaBuddy.reminderInterval.toString();
+              const intervalValue = parseInt(this.reminderInterval, 10);
+              this.customIntervalMinutes = isNaN(intervalValue) || intervalValue < 1 ? 60 : 
+                                          intervalValue > 480 ? 480 : intervalValue;
+            }
+          } else {
+            this.reminderInterval = '60';
+            this.customIntervalMinutes = 60;
+          }
+          
+          this.reminderStartTime = result.aquaBuddy.reminderStartTime || '09:00';
+          this.reminderEndTime = result.aquaBuddy.reminderEndTime || '18:00';
+          this.workdaysOnly = result.aquaBuddy.workdaysOnly !== undefined ? result.aquaBuddy.workdaysOnly : true;
         }
       });
     },
     saveSettings() {
       const browserAPI = chrome;
       
-      // 保存喝水目标
+      // 获取实际的提醒间隔（分钟）
+      const actualInterval = this.reminderInterval === 'custom' 
+        ? parseInt(this.customIntervalMinutes, 10) 
+        : parseInt(this.reminderInterval, 10);
+      
+      console.log('保存设置 - 实际间隔:', actualInterval, '分钟');
+      
+      // 保存喝水目标和提醒设置
       browserAPI.storage.local.get('aquaBuddy', (result) => {
         const aquaBuddyData = result.aquaBuddy || {};
         aquaBuddyData.totalCups = this.waterGoal;
+        aquaBuddyData.reminderEnabled = this.reminderEnabled;
+        aquaBuddyData.reminderInterval = this.reminderInterval;
+        aquaBuddyData.customIntervalMinutes = parseInt(this.customIntervalMinutes, 10);
+        aquaBuddyData.reminderStartTime = this.reminderStartTime;
+        aquaBuddyData.reminderEndTime = this.reminderEndTime;
+        aquaBuddyData.workdaysOnly = this.workdaysOnly;
         
         browserAPI.storage.local.set({ aquaBuddy: aquaBuddyData });
+        
+        // 发送消息给背景脚本，更新提醒设置
+        browserAPI.runtime.sendMessage({
+          action: 'update_reminder_settings',
+          enabled: this.reminderEnabled,
+          interval: actualInterval,
+          startTime: this.reminderStartTime,
+          endTime: this.reminderEndTime,
+          workdaysOnly: this.workdaysOnly
+        }, (response) => {
+          console.log('提醒设置更新响应:', response);
+        });
       });
       
       // 显示保存成功动画
@@ -81,6 +244,25 @@ export default {
       setTimeout(() => {
         this.settingsSaved = false;
       }, 2000);
+    },
+    handleIntervalChange() {
+      console.log('间隔改变:', this.reminderInterval);
+      // 如果选择了预设值，更新自定义分钟数
+      if (this.reminderInterval !== 'custom') {
+        this.customIntervalMinutes = parseInt(this.reminderInterval, 10);
+      }
+    },
+    validateCustomInterval() {
+      // 确保自定义间隔是数字且在有效范围内
+      let value = parseInt(this.customIntervalMinutes, 10);
+      
+      if (isNaN(value) || value < 1) {
+        value = 1;
+      } else if (value > 480) {
+        value = 480;
+      }
+      
+      this.customIntervalMinutes = value;
     },
     increaseCups() {
       this.waterGoal++;
@@ -105,6 +287,47 @@ export default {
           }, 2000);
         });
       });
+    },
+    testNotification() {
+      // 调用系统通知
+      this.showSystemNotification('AquaBuddy 提醒', '该喝水啦！保持健康的饮水习惯 💧');
+    },
+    
+    // 显示系统通知
+    showSystemNotification(title, message) {
+      const browserAPI = chrome;
+      
+      console.log('准备发送系统通知...');
+      
+      // 直接使用Chrome扩展API发送系统通知
+      browserAPI.runtime.sendMessage({
+        action: 'show_notification',
+        title: title,
+        message: message
+      }, (response) => {
+        console.log('收到通知响应:', response);
+        if (response && response.success) {
+          this.settingsSaved = true;
+          setTimeout(() => {
+            this.settingsSaved = false;
+          }, 2000);
+        } else if (browserAPI.runtime.lastError) {
+          console.error('通知发送失败:', browserAPI.runtime.lastError);
+          alert('通知发送失败: ' + JSON.stringify(browserAPI.runtime.lastError));
+        } else {
+          console.error('通知发送失败:', response);
+          alert('通知发送失败，请检查浏览器通知权限设置');
+        }
+      });
+    },
+    
+    // 以下方法不再使用
+    showNotification(title, message) {
+      this.showSystemNotification(title, message);
+    },
+    
+    createNotification(title, message) {
+      this.showSystemNotification(title, message);
     }
   },
   mounted() {
@@ -112,211 +335,3 @@ export default {
   }
 }
 </script>
-
-<style>
-.aqua-buddy-options {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: 'Comic Sans MS', 'Marker Felt', sans-serif;
-  background-color: #f0f9ff;
-  min-height: 100vh;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
-.logo {
-  font-size: 48px;
-  margin-right: 15px;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-}
-
-.header h1 {
-  margin: 0;
-  color: #0099cc;
-  font-size: 28px;
-}
-
-.settings-container {
-  background-color: white;
-  border-radius: 15px;
-  padding: 20px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.settings-section {
-  margin-bottom: 30px;
-}
-
-.settings-section h2 {
-  color: #0099cc;
-  font-size: 20px;
-  margin-top: 0;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px dashed #b3e6ff;
-}
-
-.setting-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  padding: 10px;
-  background-color: #f0f9ff;
-  border-radius: 10px;
-}
-
-.setting-label {
-  font-weight: bold;
-  color: #333;
-}
-
-.setting-control {
-  display: flex;
-  align-items: center;
-}
-
-/* Cup adjuster styling */
-.cup-adjuster {
-  display: flex;
-  align-items: center;
-}
-
-.cup-adjuster button {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: none;
-  background-color: #33ccff;
-  color: white;
-  font-size: 18px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.3s;
-}
-
-.cup-adjuster button:hover {
-  background-color: #00b3e6;
-}
-
-.cup-adjuster button:disabled {
-  background-color: #b3e6ff;
-  cursor: not-allowed;
-}
-
-.cup-adjuster span {
-  margin: 0 15px;
-  font-weight: bold;
-  font-size: 18px;
-  color: #0099cc;
-}
-
-/* Current cups display */
-.current-cups {
-  font-weight: bold;
-  font-size: 18px;
-  color: #0099cc;
-  margin-right: 15px;
-}
-
-/* Reset button styling */
-.reset-button {
-  background-color: #ff9999;
-  border: none;
-  border-radius: 10px;
-  color: white;
-  padding: 6px 12px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.reset-button:hover {
-  background-color: #ff6666;
-}
-
-/* Save button styling */
-.settings-actions {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.save-button {
-  background-color: #33ccff;
-  border: none;
-  border-radius: 20px;
-  color: white;
-  padding: 10px 30px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 153, 204, 0.2);
-}
-
-.save-button:hover {
-  background-color: #00b3e6;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 8px rgba(0, 153, 204, 0.3);
-}
-
-/* Mascot footer styling */
-.mascot-footer {
-  display: flex;
-  align-items: center;
-  margin-top: 30px;
-  background-color: #e6f7ff;
-  border-radius: 15px;
-  padding: 15px;
-}
-
-.mascot-image {
-  font-size: 40px;
-  margin-right: 15px;
-  transition: transform 0.5s ease;
-}
-
-.mascot-image.happy {
-  animation: jump 1s infinite alternate;
-}
-
-@keyframes jump {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-15px) rotate(10deg); }
-}
-
-.mascot-speech {
-  background-color: white;
-  border-radius: 15px;
-  padding: 10px 15px;
-  position: relative;
-  flex: 1;
-  font-size: 16px;
-  color: #0099cc;
-}
-
-.mascot-speech:before {
-  content: "";
-  position: absolute;
-  left: -15px;
-  top: 50%;
-  transform: translateY(-50%);
-  border-width: 10px 15px 10px 0;
-  border-style: solid;
-  border-color: transparent white transparent transparent;
-}
-</style>
