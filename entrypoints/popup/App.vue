@@ -19,6 +19,7 @@
         </div>
       </div>
       <div class="progress-text">{{ drankCups }} / {{ totalCups }} 杯</div>
+      <div class="ml-progress-text">{{ totalMl }} / {{ goalMl }} ml</div>
     </div>
     
     <div class="water-action">
@@ -43,6 +44,7 @@ export default {
     return {
       drankCups: 0,
       totalCups: 8,
+      cupCapacity: 350,
       lastUpdatedDate: '',
       messages: {
         start: ['该喝水啦！', '记得补充水分哦！', '健康从喝水开始～'],
@@ -63,6 +65,12 @@ export default {
       } else {
         return this.getRandomMessage('progress');
       }
+    },
+    totalMl() {
+      return this.drankCups * this.cupCapacity;
+    },
+    goalMl() {
+      return this.totalCups * this.cupCapacity;
     }
   },
   methods: {
@@ -82,6 +90,7 @@ export default {
         aquaBuddy: {
           drankCups: this.drankCups,
           totalCups: this.totalCups,
+          cupCapacity: this.cupCapacity,
           lastUpdatedDate: today
         }
       });
@@ -101,6 +110,7 @@ export default {
           }
           
           this.totalCups = result.aquaBuddy.totalCups || 8;
+          this.cupCapacity = result.aquaBuddy.cupCapacity || 350;
         }
       });
     },
@@ -220,6 +230,14 @@ export default {
   font-size: 16px;
   font-weight: bold;
   color: #0099cc;
+  margin-bottom: 4px;
+}
+
+.ml-progress-text {
+  text-align: center;
+  font-size: 14px;
+  color: #33a6cc;
+  margin-bottom: 8px;
 }
 
 .water-action {

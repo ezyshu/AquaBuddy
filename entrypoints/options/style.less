@@ -125,6 +125,51 @@ body {
   color: #0099cc;
 }
 
+/* Cup capacity styling */
+.cup-capacity {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 180px;
+}
+
+.capacity-input {
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 10px;
+  border: 2px solid #b3e6ff;
+  background-color: white;
+  color: #0099cc;
+  font-family: 'Comic Sans MS', 'Marker Felt', sans-serif;
+  font-size: 16px;
+  outline: none;
+  transition: all 0.3s;
+  box-shadow: 0 2px 5px rgba(0, 153, 204, 0.1);
+}
+
+.capacity-input:focus, .capacity-input:hover {
+  border-color: #33ccff;
+  box-shadow: 0 4px 8px rgba(0, 153, 204, 0.2);
+  transform: translateY(-1px);
+}
+
+.capacity-input::-webkit-outer-spin-button,
+.capacity-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.capacity-input[type=number] {
+  -moz-appearance: textfield; /* Firefox */
+}
+
+.unit {
+  margin-left: 10px;
+  font-weight: bold;
+  color: #0099cc;
+  font-size: 16px;
+}
+
 /* Current cups display */
 .current-cups {
   font-weight: bold;

@@ -21,6 +21,23 @@
         </div>
         
         <div class="setting-item">
+          <div class="setting-label">杯子容量 (毫升)</div>
+          <div class="setting-control">
+            <div class="cup-capacity">
+              <input 
+                type="number" 
+                class="capacity-input" 
+                v-model.number="cupCapacity" 
+                min="1" 
+                step="1"
+                @input="validateCupCapacity"
+              />
+              <span class="unit">ml</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="setting-item">
           <div class="setting-label">今日已喝水杯数</div>
           <div class="setting-control">
             <div class="current-cups">{{ drankCups }} / {{ waterGoal }}</div>
@@ -150,6 +167,7 @@ export default {
     return {
       waterGoal: 8,
       drankCups: 0,
+      cupCapacity: 350,
       settingsSaved: false,
       reminderEnabled: false,
       reminderInterval: '60',
@@ -167,6 +185,7 @@ export default {
         if (result.aquaBuddy) {
           this.waterGoal = result.aquaBuddy.totalCups || 8;
           this.drankCups = result.aquaBuddy.drankCups || 0;
+          this.cupCapacity = result.aquaBuddy.cupCapacity || 350;
           this.reminderEnabled = result.aquaBuddy.reminderEnabled || false;
           
           // 处理提醒间隔
@@ -217,6 +236,7 @@ export default {
       browserAPI.storage.local.get('aquaBuddy', (result) => {
         const aquaBuddyData = result.aquaBuddy || {};
         aquaBuddyData.totalCups = this.waterGoal;
+        aquaBuddyData.cupCapacity = this.cupCapacity;
         aquaBuddyData.reminderEnabled = this.reminderEnabled;
         aquaBuddyData.reminderInterval = this.reminderInterval;
         aquaBuddyData.customIntervalMinutes = parseInt(this.customIntervalMinutes, 10);
@@ -264,6 +284,16 @@ export default {
       
       this.customIntervalMinutes = value;
     },
+    validateCupCapacity() {
+      // 确保杯子容量是正整数
+      let value = parseInt(this.cupCapacity, 10);
+      
+      if (isNaN(value) || value < 1) {
+        value = 1;
+      }
+      
+      this.cupCapacity = value;
+    },
     increaseCups() {
       this.waterGoal++;
     },
@@ -307,10 +337,11 @@ export default {
       }, (response) => {
         console.log('收到通知响应:', response);
         if (response && response.success) {
-          this.settingsSaved = true;
-          setTimeout(() => {
-            this.settingsSaved = false;
-          }, 2000);
+          // 不再触发保存设置的动画效果
+          // this.settingsSaved = true;
+          // setTimeout(() => {
+          //   this.settingsSaved = false;
+          // }, 2000);
         } else if (browserAPI.runtime.lastError) {
           console.error('通知发送失败:', browserAPI.runtime.lastError);
           alert('通知发送失败: ' + JSON.stringify(browserAPI.runtime.lastError));
